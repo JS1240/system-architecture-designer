@@ -43,3 +43,15 @@ Then open a pull request.
 - Questions, components, prices and rules live in `architect/src/knowledge/`; scenarios in `scenarios.ts`.
 - After a UI change, refresh the screenshots with the dev server on port 5174: `node scripts/readme-screenshots.mjs`.
 - Engine details: [docs/decision-engine.md](docs/decision-engine.md).
+
+## Attribution
+
+The decision engine is built on what these repositories teach; each knowledge-base entry cites its source file and lines.
+
+| Source | Author | Licence | In this repo |
+|---|---|---|---|
+| [system-design-primer](https://github.com/donnemartin/system-design-primer) | Donne Martin | CC BY 4.0 | Cited; [docs/knowledge/system-design-primer.md](docs/knowledge/system-design-primer.md) is an adapted extract |
+| [system-design-101](https://github.com/ByteByteGoHq/system-design-101) | ByteByteGo | CC BY-NC-ND 4.0 | Cited by guide title and path only; no guide text |
+| [system-design](https://github.com/karanpratapsingh/system-design) | Karan Pratap Singh | CC BY-NC-ND 4.0 | Cited by section and line range only; no course text |
+
+Code is [MIT](LICENSE).
