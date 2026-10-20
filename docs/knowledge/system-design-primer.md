@@ -1,5 +1,7 @@
 # System Design Primer: Knowledge Base Extract
 
+Adapted from [system-design-primer](https://github.com/donnemartin/system-design-primer) by Donne Martin, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Changes: condensed into tagged entries with source line ranges. This file is under CC BY 4.0, not the MIT License of this repository.
+
 Source path legend: `R` = system-design-primer-master/README.md; `S/<name>` = system-design-primer-master/solutions/system_design/<name>/README.md; `O/<name>` = system-design-primer-master/solutions/object_oriented_design/<name>/. Line ranges are 1-based and inclusive.
 Tags used in entries: `[src]` = stated in source, `[inf]` = inferred by the extractor, not stated in source.
 
