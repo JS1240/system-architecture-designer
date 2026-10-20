@@ -31,14 +31,18 @@ Open http://localhost:5173.
 
 ## Add to the repo
 
+`main` is protected: every change goes through a pull request that needs one approving review.
+
 ```bash
+gh repo fork JS1240/system-architecture-designer --clone
+cd system-architecture-designer
 git checkout -b my-change
 cd architect
+npm install
 npm run typecheck && npm test && npm run lint && npm run build
 git push -u origin my-change
+gh pr create --repo JS1240/system-architecture-designer
 ```
-
-Then open a pull request.
 
 - Questions, components, prices and rules live in `architect/src/knowledge/`; scenarios in `scenarios.ts`.
 - After a UI change, refresh the screenshots with the dev server on port 5174: `node scripts/readme-screenshots.mjs`.
