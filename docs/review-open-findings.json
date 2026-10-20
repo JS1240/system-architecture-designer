@@ -1,0 +1,245 @@
+{
+  "note": "All resolved on 2026-10-19: 26 of the 33 open findings were already fixed by the repair agent; the other 7 (19, 20, 22, 30, 31, 32, 33) and the test gap in 26 were fixed and pinned with tests. The 10 skipped findings had passed the independent check. Kept as a record.",
+  "openAfterCheck": [
+    {
+      "key": "provider-catalog:ws-gateway:label-names-unpriced-l4-balancer",
+      "fixerStatus": "fixed",
+      "fixerChange": "Took the label route. The websocket, sse and long_polling ws-gateway rows now share one L7_BALANCER name list, and it names the drawn, priced lb on each provider (ALB, Application Gateway, External ALB, HAProxy all pass the WebSocket upgrade). The label no longer names the unpriced Network Load Bala",
+      "checkerSaysRemaining": "Make the ws-gateway label stop naming a balancer when no lb is drawn. One option is to add ws-gateway rows ahead of the realtime() rows (first match wins), with when f.eq('infra.compute','paas') (or f.not(f.has('lb')), if the engine evaluates has() at offer time), and names that leave out 'behind ...', for example 'WebSocket servers on App Runner/App Service/App Engine'. The other option is to drop the 'behind X' suffix altogether. Then extend the catalog.test.ts case with a chat-app + infra.compute=paas variant that asserts the label names no balancer when the lb component is missing. Unchecked: whether App Runner supports WebSockets (general knowledge says it does not), which would be a separate finding."
+    },
+    {
+      "key": "task-types:explore:what-if-levers-inert-for-data-platforms",
+      "fixerStatus": "fixed",
+      "fixerChange": "src/engine/explore.ts adds whatIfLevers(evaluation). It lists the original levers plus data levers (Existing data x10, Data doubles yearly, Report viewers x10, Queries 24 h, Fresh in minutes) and keeps only those whose target questions are active. src/ui/ExplorePanel.tsx WhatIfLab uses it and receiv",
+      "checkerSaysRemaining": "1. Make the preview evaluate what the lever list was built from. Either compute the preview on assumedDesign(answers + whatIf) and compare it with the assumed base, or build the lever list from the raw base and leave data levers out until data.platform is decided.\n2. Hide levers whose trial design does not differ from the base. That covers Queries 24 h and Fresh in minutes on fabric-bi-azure, Report viewers x10 and Queries 24 h on onprem-iceberg-lakehouse, and a Move to X lever when the design is already on X. The alternative is to price query hours and freshness on those platforms.\n3. Add a test that goes through the UI's preview path (evaluate(answers + overrides) against evaluate(answers)) for a freshly opened data scenario. It should assert that every lever shown changes the diff."
+    },
+    {
+      "key": "explore:origin:move-database-not-detected",
+      "fixerStatus": "fixed",
+      "fixerChange": "Added a compound keyword to migrate_database: 'move|moving|lift|rehost+database|db|oracle|sql server|postgres|postgresql|mysql'.",
+      "checkerSaysRemaining": "Keep the plain-word database move from outranking the other origin signals. One way: on migrate_database, add the compound as a negativeKeywords-guarded variant, or put migrate_database after replace_legacy_app/modernize_app in the tie order. Another way: give replace_legacy_app compounds like 'replace|legacy+database|db|oracle|...' so its score keeps up. Then add the five regression briefs above, plus the greenfield 'move ... MySQL database' case, to the 'reads a database move described in plain words' test in src/engine/migration.test.ts. I did not run the full vitest suite, tsc, oxlint or the build; I ran only the three test files that call suggestFromDescription."
+    },
+    {
+      "key": "data-platform:cross-cloud-platform:hybrid-transfer-message-contradicts-source-and-cost",
+      "fixerStatus": "fixed",
+      "fixerChange": "cross-cloud-platform now covers only Fabric from AWS or GCP and keeps the $0.09/GB wording. A new info rule, hybrid-platform-transfer, says inbound loads are free, the VPN or interconnect port (the private link line) is the fixed cost, and results pulled back cost about $0.02/GB and are not in the e",
+      "checkerSaysRemaining": "In /Users/juresunic/Local_Personal_Projects/System Design/architect/src/knowledge/validations.ts:258-265, either add f.not(hybridAnalytics) to the `when` of snowflake-account-region, or give the hybrid case its own wording. For hybrid, the check is the account's cloud and region against data.analytics_cloud/data.analytics_region, so the private link lands where the account is. Loads from the data center stay inbound and free, so the $0.09/GB per-load wording should not appear. Add an engine test: hybrid with snowflake_existing must not show a message matching 0.09. Minor: the doc comment at questions.ts:94 describes crossCloudPlatform but sits above otherPlatformLicensed. Not checked: the UI rendering in the browser, and npm run build (it writes dist/ inside the project, which is read-only for this task). The full vitest run timed out under machine load; the timed-out files passed when rerun with a longer timeout."
+    },
+    {
+      "key": "store:overrides:zero-divisor-reference-keys",
+      "fixerStatus": "fixed",
+      "fixerChange": "src/knowledge/reference.ts: new referenceInfo entry per numeric key, with positive: true on the 20 keys used as divisors or capacities. That is the 17 a probe across all scenarios showed going Infinity/NaN at 0, plus transferEfficiency, vpnGbps and offlineDeviceTb. src/store/projectStore.ts cleanOve",
+      "checkerSaysRemaining": "The opsFteMonthlyUsd = 0 case is still open. Either mark it `positive: true` in referenceInfo, or guard the division in staffEstate (src/engine/architecture.ts), for example by working out the base FTE without dividing by the price. The test should check runAndPeople (or monthlyCost plus cost.people), not monthlyCost alone. Separately, migrateStore does not run persisted overrides through cleanOverrides, and it only runs when the store version changes. A 0 saved in localStorage before this fix therefore still loads as is.\n\nNot checked: tsc, oxlint, the full vitest suite and the build. Probe scripts are in /tmp/zchk/probe.mts and /tmp/zchk/ui.mjs."
+    },
+    {
+      "key": "ui:cost-panel:discount-slider-floods-undo",
+      "fixerStatus": "fixed",
+      "fixerChange": "src/ui/CostPanel.tsx Prices: the discount slider keeps a local draft while the thumb moves (the label shows the draft) and calls edit(...discountPct) once from onPointerUp, onKeyUp and onBlur, using the commit-on-release pattern from QuestionCard, with pointer capture.",
+      "checkerSaysRemaining": "In CostPanel.tsx, remove `onPointerDown={(ev) => ev.currentTarget.setPointerCapture(ev.pointerId)}` from the discount slider. Keep the draft and the commit on pointerup, keyup and blur. Then check one drag = one undo step in both chromium and webkit (the /tmp/discount-verify/ui.mjs flow). The same capture line in QuestionCard.tsx:123 breaks WebKit drag there too, which can be fixed the same way. Not checked: real Safari, since Safari automation would need a settings change. Playwright WebKit is the closest proxy."
+    },
+    {
+      "key": "data-platform:fabric-score:outweighs-existing-platforms-and-cost",
+      "fixerStatus": "fixed",
+      "fixerChange": "data.platform: the Fabric Azure affinity (+3) no longer applies when Databricks or Snowflake is already licensed. M365 (+2.5) counts only off Azure, so it is not counted twice. Existing Databricks and Snowflake are raised to +3 each. A -4 penalty applies to Fabric past one F64 (more than 50 TB, or m",
+      "checkerSaysRemaining": "In questions.ts, data.platform, Fabric option: the past-F8 rule (fabricPastF8 and not fabricPastF64) gives only -1 against the +3 Azure affinity. Fabric therefore stays recommended on Azure from about 3 TB to 50 TB while the knowledge base prices it 2-3.6x above Snowflake and Databricks.\n\nRepro: answers project.kind=data_platform, product.features=[analytics], team.size=multi, infra.cloud=azure, data.history_tb=30, no existing platforms. Result: Fabric at $9,300, against Snowflake $2,609 and Databricks $3,302.\n\nFix: make the F16-F64 band penalty large enough, or tie it to the priced gap, so that the +3 Azure affinity cannot outweigh a capacity 2x or more above the alternatives. Add a test at 30 TB on Azure that expects a non-Fabric pick. The data.platform cost lever there also points to olap_db rather than Snowflake or Databricks."
+    },
+    {
+      "key": "cost:usage-billed:gateway-waf-identity-observability-priced-flat",
+      "fixerStatus": "fixed",
+      "fixerChange": "New fact cap.requestsMonth (avg qps x seconds a month) in workload.ts, registered in the engine/questions.ts trace list and in the METRIC_LABEL table in conditions.ts. LinearSizing gains an optional 'free' field (a free tier, applied in architecture.ts linear()). services.ts cloud rows are now bille",
+      "checkerSaysRemaining": "Price the cloud SSO rows per monthly user in services.ts:293: 'Cognito SAML federation' and 'Identity Platform SAML', about $0.015 per MAU past 50 free (general knowledge). Reuse the MAU_PER_DAU x cap.dau sizing and the `free` field the OIDC rows already use. Entra ID multi-tenant sign-in can stay flat. Keycloak federation keeps node pricing. Add a check that url-shortener on AWS, which recommends SSO at 35M DAU, no longer bills a flat $100 identity line."
+    },
+    {
+      "key": "cost:people:platform-ops-flat-regardless-of-estate",
+      "fixerStatus": "fixed",
+      "fixerChange": "architecture.ts staffEstate(): platform-ops = base share (pricing rules) + own servers / ownNodesPerOpsFte (all instance nodes on own hardware, plus own-edge CDN servers anywhere) + cloud cluster nodes / clusterNodesPerOpsFte (compute tier on Kubernetes/VMs). A peer or standby region and non-product",
+      "checkerSaysRemaining": "1) In staffEstate, count every self-run fleet on the chosen cluster platform as cluster nodes, not just tier 'compute'. That covers async workers on EKS/AKS/GKE or VMs and self-run gateway or WebSocket fleets. Exclude provider-managed compute such as SageMaker endpoints, for example by keying on the offer or tech rather than the tier. 2) Make sure the on-prem base for a self-run Kubernetes or VM platform is not below the cloud Kubernetes base of 1 FTE, for example 0.5 for hardware on top of the compute-platform base. Otherwise small on-prem Kubernetes designs carry half the staff of EKS. 3) Extend the engine test to assert that Kubernetes workers (for example chat-app or web-crawler with infra.compute=kubernetes) raise the people cost, and that on-prem Kubernetes people cost is at least the cloud Kubernetes people cost for the same small design. Not checked: the UI rendering of the FTE label. The managed cloud data-store shortcut was accepted as documented."
+    },
+    {
+      "key": "migration:mainframe-warehouse:no-target-or-code-questions-flat-effort",
+      "fixerStatus": "fixed",
+      "fixerChange": "source.code_in_db is now asked for mainframe and warehouse sources too (prompt, help and options reworded for COBOL/copybooks and BTEQ/ETL). New reference effort keys: migrationFteMonthsMainframe 12 / Heavy 36 and migrationFteMonthsWarehouse 6 / Heavy 18, used in migration.ts. Bulk-loader offers nam",
+      "checkerSaysRemaining": "Kept (extend_existing) mainframe and warehouse sources are now charged code conversion they never do. Mainframe extend_existing (AWS, 20 TB): code_in_db inactive, mig.engineeringFteMonths 12, oneTime $150,000. Warehouse extend_existing: 6 FTE-months, $75,000. An Oracle extend_existing gets the 2 FTE-month default, and before this fix the mainframe and warehouse cases did too. The fix is to gate the mainframe and warehouse terms of sourceCode in /Users/juresunic/Local_Personal_Projects/System Design/architect/src/engine/migration.ts:104-107 on facts['profile.replace'] === true, as the intoLake term already is (or skip them when source.code_in_db is unanswered). Then add an extend_existing assertion to the test at src/engine/migration.test.ts:688. Separately, 12 FTE-months at 'some' still gives a $150k/mo mainframe exit about 4 months payback, which is low. That is a reference constant marked as a shortcut, so it was not counted against this fix."
+    },
+    {
+      "key": "migration:link:recommendation-contradicts-own-transfer-maths",
+      "fixerStatus": "fixed",
+      "fixerChange": "New fact mig.deviceSpeedup10g (10 Gbps copy hours divided by offlineDeviceHours) in src/engine/migration.ts, registered in src/engine/questions.ts. offline_device now scores only when it is above 1. dedicated_10g gets a copy-time score: 1 Gbps takes more than 168 h and 10 Gbps still beats the device",
+      "checkerSaysRemaining": "Score every link against the engine's own per-link hours, not constants:\n- Make the device fact perLink.dedicated_10g / perLink.offline_device. The device then never scores when the import floor makes it no faster.\n- Give the 10 Gbps copy-time rule a condition that mig.bulkHours10g < mig.bulkHours1g.\n- Give the 1 Gbps rule a condition that mig.bulkHours1g < mig.bulkHoursVpn.\n- Apply the 'history loads before cutover' reason only when migration.sync is not bulk_export.\n- Add tests for dynamics-crm-to-d365 at 300 GB, 1 TB and 2 TB (expect VPN, since every link takes the same time) and for a forced bulk_export."
+    },
+    {
+      "key": "onboarding:autodesign:ignores-detected-suggestions",
+      "fixerStatus": "fixed",
+      "fixerChange": "src/store/projectStore.ts autoCompleteActive now runs autoComplete over the answers plus addSuggestions(project.suggestions), so detections that were not dismissed come before the recommendations. Suggestions that got answered are dropped through withSuggestions. The Sidebar button title now says th",
+      "checkerSaysRemaining": "autoCompleteActive must apply only the suggestions for questions the user has not answered. Two ways to do that. Either filter before merging, e.g. `Object.fromEntries(Object.entries(p.suggestions ?? {}).filter(([id]) => !(id in before)))`. Or have setAnswer (and undo/redo travel) re-run withSuggestions so answered questions drop out of project.suggestions, the same way createProject and setDescription already do.\n\nAdd a test: create a project with the Azure/GDPR brief, setAnswer infra.cloud=aws, run autoCompleteActive, and expect infra.cloud to stay aws while compliance still picks up gdpr. Optionally, apply the pending suggestions in the assumedDesign compare-table path too, as the original fix proposed."
+    },
+    {
+      "key": "migration:history:recent-archive-unpriced-and-not-transferred",
+      "fixerStatus": "fixed",
+      "fixerChange": "object-storage now also fires when retiring and source.history = recent, so the archive is drawn and priced. New edges bulk-loader/api-extractor -> object-storage ('Older history to the archive'). The pre-signed upload edge is now limited to media, jobs, CDN or large objects. New fact mig.transferGb",
+      "checkerSaysRemaining": "Count the archive's link time when retiring with source.history = recent. It should still stay out of the cutover window. One option is a separate archive-copy duration from mig.transferGb - mig.sourceGb at the chosen link rate. Feed it into the pre-cutover timeline (mig.loadDays / preCutoverMonths, the Gantt in src/docs/generate.ts), the Migration copy figure (src/ui/Overlays.tsx:80) and the 'transfer-weeks' check (src/knowledge/validations.ts:582). Add a test that 'recent' over dedicated_1g at 100 TB reports the archive transfer and raises 'transfer-weeks'. Optional wording fix: with history=all the egress note still says \"the copy and the archived history\" even though there is no archive."
+    },
+    {
+      "key": "engine:platform-egress:zero-volume-on-data-platforms",
+      "fixerStatus": "fixed",
+      "fixerChange": "Added workload.platformChangesGbMonth and the fact cap.platformChangesGbMonth. On a request path it is writes x record size over a month, as before. On a data platform it is the lake's yearly growth spread over 12 months (shortcut comment). platform-egress is now sized from this fact (components.ts)",
+      "checkerSaysRemaining": "Make the data-platform branch of platformChangesGbMonth use the same change volume as peakIngestQps: lake TB x 1024 x max((growth - 1) / 365, ref.lakeDailyChangeShare) x 365 / 12. A flat or default-growth lake then bills its daily changes and stops falling back to the 1 GB minimum. Add an assertion for the default/0% growth case, for example 20 TB with no growth answer, so units match that formula and the line is well above 1. Optionally scale with data.source_count. Not checked: the UI render, the full vitest suite, oxlint and build. Only the targeted test and tsc were run."
+    },
+    {
+      "key": "migration:extend-existing:data-platform-draws-source-twice",
+      "fixerStatus": "fixed",
+      "fixerChange": "soleExistingSource (extend_existing and data.source_count <= 1) removes the generic 'sources' node, and removes 'ingestion' on a data platform with no request path. The existing system's own feed is then the single pipeline. The orchestrate edge falls back to cdc-pipeline, bulk-loader or api-extract",
+      "checkerSaysRemaining": "1. When soleExistingSource holds and there is no request path (the same case that removes 'ingestion' in src/knowledge/components.ts:771), deactivate data.ingestion, or say in its ADR that the existing system's sync method (migration.sync) carries the data. That stops ADR-007 contradicting ADR-003.\n2. Drop or adjust the 'Ingestion is priced per source system' formula text for that case.\n3. Optionally handle extend_existing + source.history='none' on a data platform: keep the sources/ingestion path, or flag that the platform has no feed. Today legacy-db is drawn with nothing flowing into the platform.\n\nNot checked: the UI question panel in the browser (the question's active state was read from the engine), oxlint and npm run build."
+    },
+    {
+      "key": "engine:overrides:discount-follows-shape-not-biller",
+      "fixerStatus": "fixed",
+      "fixerChange": "Added optional ServiceOffer.vendor (types.ts): the company that bills a line, or for an 'any' offer the cloud that bills it. architecture.ts now discounts a line only when its biller (offer.vendor ?? offer.provider, or the cloud for offer-less non-external or transfer lines) equals infra.cloud. serv",
+      "checkerSaysRemaining": "Finish the vendor tagging in src/knowledge/services.ts so every row a third party bills names its biller:\n- ClickHouse Cloud warehouse and storage rows (lines ~428 and 437): vendor 'clickhouse'.\n- Snowpipe and Snowpipe Streaming (lines 473-474): vendor 'snowflake'.\n- 'Fivetran or Airbyte connectors' (line 478): a third-party vendor.\n- MongoDB Atlas on AWS and on Google Cloud (line 366): vendor 'mongodb'.\n- Elastic Cloud on Google Cloud (line 394): vendor 'elastic'. Elastic Cloud on Azure is an Azure Native ISV service, so decide whether Azure bills it.\n- The Databricks 'any' rows (ml-batch Lakeflow Jobs, Structured Streaming, Lakeflow Connect, orchestrator Lakeflow Jobs): decide whether they follow Azure on Azure, the way Azure Databricks SQL does.\n\nThen extend the overrides test with olap_db on AWS (ClickHouse warehouse at ratio 1) and Snowflake on GCP (Snowpipe ingestion at ratio 1).\n\nI did not run the full test suite, oxlint or the build. I did not check Power BI MACC eligibility, which is moot because license lines are never discounted."
+    },
+    {
+      "key": "ui:hud:request-metrics-on-data-platform",
+      "fixerStatus": "fixed",
+      "fixerChange": "src/ui/Overlays.tsx Hud: when profile.requestPath is false, the Peak traffic and Storage tiles are replaced by 'Analytics data' (history TB, or 'none yet', with growth %/yr and number of sources) and 'Report viewers' (viewers and query h/day). Each tile opens its question.",
+      "checkerSaysRemaining": "1. In Overlays.tsx, show the data tiles only when profile.dataPlatform is true, the same check docs/generate.ts:345 uses. For a requestPath-false design without a data platform (bought CRM), hide the two tiles or show what that design is sized by (CRM users, source volume), and never show 'not set' tiles that open questions the design does not ask.\n2. Size the Analytics data tile from workload.lakeStorageTb, the real lake total including migrated source volumes, instead of raw data.history_tb, so a 5 TB warehouse migration does not read 'none yet'.\n3. Add test cases for dynamics-crm-to-d365 (no 'not set' analytics tiles) and sqlserver-dw-to-fabric (no 'none yet')."
+    },
+    {
+      "key": "data-platform:ingestion:source-count-billed-only-on-databricks",
+      "fixerStatus": "fixed",
+      "fixerChange": "LinearSizing gets an optional `floor` (a product of facts and constants; architecture.ts takes the max, and the producers map and kb test read it). Glue and ADF batch rows now have a per-source floor of 30 compute-unit-hours a month. Lakeflow Connect is priced in DBUs at $0.45, with the Databricks c",
+      "checkerSaysRemaining": "1. Price the saas_connectors and streaming rows per source, for example a per-connector or per-stream floor: AppFlow, ADF connectors, Firehose, Event Hubs Capture, Fivetran/Airbyte, Pub/Sub to BigQuery, Snowpipe Streaming, Dataflow streaming and Kafka Connect.\n2. Alternatively, limit the plain Lakeflow Connect row to batch and leave Databricks saas_connectors and streaming on the same basis as the other platforms.\n3. Price the GCP batch rows (Snowpipe, Dataproc Serverless, ClickPipes, Dataflow batch) the same way as Glue and ADF.\n4. Extend the engine test beyond AWS batch to cover saas_connectors and streaming, and GCP batch."
+    },
+    {
+      "key": "ai-app:extend-existing:kept-data-not-wired-to-ai",
+      "fixerStatus": "fixed",
+      "fixerChange": "New decision ai.existing_data (embed / live_tools / both), asked on extend_existing with agent_actions. live_tools removes the copy (movesData; source.history not asked), so there is no loader, CDC, landing zone or link. New edge tool-gateway->legacy-db/crm/saas 'Read-only record lookups'. Retrieval",
+      "checkerSaysRemaining": "1. Under ai.existing_data=live_tools, drop api-extractor (and so landing-zone) for CRM and SaaS sources: gate the condition at src/knowledge/components.ts:1070 the way the copy-gating check (movesData) is gated.\n2. For a files source, either make live_tools infeasible (no live query path to files) or draw a tool path to file-source.\n3. For an existing database kept with chat only (no agents, no RAG), either drop the copy or ask how the AI reads the data, so no landing zone sits without a reader.\n4. Optionally, reduce or relabel migration-engineering when nothing is copied.\nEach case needs a test in src/engine/paths.test.ts. I did not render the UI or run the full vitest, oxlint or build."
+    },
+    {
+      "key": "data-platform:questions:streaming-decided-in-three-places",
+      "fixerStatus": "fixed",
+      "fixerChange": "Took the finding's alternative fix. New warning validations streaming-for-batch-reports (streaming analytics with daily/hourly freshness) and batch-warehouse-for-live-reports (warehouse with seconds freshness). arch.async is no longer asked on a data platform unless analytics stream or events are in",
+      "checkerSaysRemaining": "Make the data.analytics recommendation follow freshness on a data platform so the engine does not recommend the combination it warns about. For example, give the streaming option enough weight for seconds freshness to beat the warehouse lake-size score, or let the freshness score break the tie instead of the default. Optionally also: a validation for streaming analytics with batch ingestion at seconds freshness, a block on arch.async=queue when data.analytics=streaming on a data platform, and help text on the data.analytics card written for a data platform. Not checked: the UI rendering of the new warnings, full tsc/oxlint/build runs, and test files other than paths.test.ts."
+    },
+    {
+      "key": "ai-app:questions:llm-set-asked-for-classic-ml",
+      "fixerStatus": "fixed",
+      "fixerChange": "New derived fact profile.llm = ml.serving llm_api OR the AI add-on, so the add-on owns its LLM path beside batch or online ML. The ai.* questions, model_hosting and vector_store, the LLM components (llm-api, llm-serving, gateway, guardrails, agent runtime, tool gateway, eval, doc ingestion, vector-d",
+      "checkerSaysRemaining": "1) questions.ts:2377: gate the llm_api score 'The AI add-on calls a hosted model' on the add-on and drop it for the ml feature when the add-on already supplies the model, for example only when the ml feature is absent. Then commerce + ml + AI add-on keeps batch as its recommendation and the default design has both ml-batch and llm-api. An ai_app without the add-on should also stop showing this reason. 2) questions.ts:46: change pgvectorRetrieval from profile.ai to profile.llm, so an ai_app on batch or online serving gets no pgvector reasons on data.primary_db or data.model. 3) Optional: ml.serving is still asked for an app with the AI add-on and no ml feature (askWhen = has(ml) or profile.ai), where picking batch adds an ml-batch nobody asked for. Consider has(ml) or kind ai_app. Add test assertions for 1 and 2."
+    },
+    {
+      "key": "data-platform:questions:app-definition-cards-still-asked",
+      "fixerStatus": "fixed",
+      "fixerChange": "product.type askWhen profile.dataPlatformOnly != true. It keys on the kind alone, so the type is still asked right after the kind. The dead data_platform defaultWhen is removed. The 10 request-path capabilities share `appCapability` (feasibleWhen: not dataPlatformOnly), leaving analytics/ml/jobs. ar",
+      "checkerSaysRemaining": "Drop suggestions that are inactive or infeasible before they are stored or applied, in withSuggestions or createProject, or in autoCompleteActive / addSuggestions. A data-platform project should then never receive product.type or a request-path product.features value (media, search, notifications, etc.) from the description. Add a test that runs each data-platform scenario through the store's create-and-auto-design path, including description suggestions. It should assert that there is no infeasible-product.features finding, no object-storage from media, and no stored product.type. Separately, the description also sets infra.cloud=onprem for sqlserver-dw-to-fabric ('on-premises' in the text), which makes Fabric infeasible. That is outside this finding but on the same path."
+    },
+    {
+      "key": "migration:crm-repurchase:database-cdc-and-reverse-replication-into-saas",
+      "fixerStatus": "fixed",
+      "fixerChange": "Added an importsIntoSaasCrm condition: a repurchased home-grown CRM. Under it, cdc and reverse_cdc are infeasible with reasons, keep_parallel scores +4, and file_drop can carry the incremental imports. Removed crm-target from the cdc-apply edge. New provider-neutral bulk-loader offers name the SaaS ",
+      "checkerSaysRemaining": "When importsIntoSaasCrm holds, the migration.link scoring must not reward bandwidth that the import cap makes useless. For example, keep the per-link mig.bulkHours* facts as pure link time and apply the import floor only to mig.bulkHours. Or add f.not(importsIntoSaasCrm) to the dedicated_1g and dedicated_10g copy-time rules at questions.ts:872-878.\n\nDone means the dynamics-crm-to-d365 scenario picks a VPN, or no paid circuit, again rather than Azure ExpressRoute 1 Gbps. It also needs a test that asserts this for a repurchased home-grown CRM.\n\nNot checked: the rendered UI, and whether a VPN or circuit is needed at all to reach a SaaS CRM's public import endpoint."
+    },
+    {
+      "key": "data-platform:ingestion:no-source-inventory",
+      "fixerStatus": "fixed",
+      "fixerChange": "source.kinds (new option 'events') and source.rdbms_engine are now asked on dataPlatformOnly as well as migrations. data.ingestion changes: cdc is infeasible without a log-bearing source; zero_etl is feasible on native AWS from a postgres/mysql source engine; saas_connectors +2.5 for SaaS sources, s",
+      "checkerSaysRemaining": "1. Give each source kind in the inventory its own ingestion path, for example connector or streaming components gated on source.kinds next to the main data.ingestion choice. Then a database + Salesforce + files platform shows a database path, a SaaS connector path and a file path. Today it gets one tool and a warning.\n2. Stop picking saas_connectors or streaming as the only path when the inventory includes a database. Cases: database + CRM + files at freshness=minutes picks AppFlow; database-only with warehouse + seconds picks Firehose.\n3. Gate the source-engine zero_etl path on the source running in AWS (Aurora or RDS). Either ask source.location on data platforms or add a hosting answer.\n4. Build the 'sources' node label from source.kinds instead of the fixed 'Existing databases, SaaS apps and files'. This needs a small change in techFor to map array facts, or per-kind techSuffixFrom entries using their `when` conditions."
+    },
+    {
+      "key": "migration:link:offline-device-recommended-for-source-in-other-cloud",
+      "fixerStatus": "fixed",
+      "fixerChange": "offline_device now has a feasibleWhen: source.location is pending or onprem_dc. Otherwise it is infeasible, with a reason pointing to a cross-cloud interconnect or a VPN with DMS, DataSync or Storage Transfer.",
+      "checkerSaysRemaining": "1. Give dedicated_10g a score rule that wins for sources outside onprem_dc when the device would otherwise win. For example, add the condition `source.location` not onprem_dc (or not exists) to `mig.deviceSpeedup10g > 1`. That way an other-cloud source of about 350 TB or more gets the 10 Gbps cross-cloud interconnect instead of the default VPN.\n2. Make the `transfer-weeks` fix text (validations.ts:585) depend on location, or drop the device advice when source.location is not onprem_dc.\n3. Correct the source.location help text (questions.ts:564) so a shipped device applies only to your own data center.\n4. Add a test: other_cloud with 1 PB or more must not choose vpn.\n\nNot checked: the UI render and the generated docs for this case."
+    },
+    {
+      "key": "ui:migration:transfer-time-and-cutover-fit-not-shown",
+      "fixerStatus": "fixed",
+      "fixerChange": "New src/ui/migrationFigures.ts holds linkOptionFigure, cutoverFigure and duration. Each feasible Transfer link option now shows this design's copy time and whether a bulk cutover fits the window. The sync, downtime and link cards show the copy time and the cutover against the window. The HUD (src/ui",
+      "checkerSaysRemaining": "The Offline transfer device figure in src/ui/migrationFigures.ts (linkOptionFigure, line 21) must not depend on the selected link. Either have the engine export a per-link device fact, e.g. 'mig.bulkHoursDevice' = perLink.offline_device from src/engine/migration.ts, or rebuild max(importHours, offlineDeviceHours) without mig.bulkHours. Then add a test case: 100 TB with VPN selected should show about 10 days on the device option. A cosmetic issue, not blocking: the downtime figure reads \"a 8.0 h window\"."
+    },
+    {
+      "key": "engine:overrides:hardcoded-reference-thresholds",
+      "fixerStatus": "fixed",
+      "fixerChange": "src/engine/workload.ts: workloadFacts(w, ref) now exposes cap.appFleetLoad = computeQps / (appInstanceQps x targetUtilization) and cap.objectStorageGb. src/engine/questions.ts passes kb.reference and writes size.<id>.pinned for pinned fleets; the new metrics are added to the traffic dependency list.",
+      "checkerSaysRemaining": "In src/knowledge/edges.ts:86, replace f.gt('data.object_kb', 64) in the 'upload' edge's when with a fact computed from the live reference, for example f.gt('cap.peakUploadQps', 0) or f.gt('cap.objectStorageGb', 0) with the archive-only case still excluded. Then add a coherence variant (query-cache with data.object_kb 40 and reference.blobThresholdKb 16, plus an appInstanceQps override and an app pin), so the 'every component has a flow' and upload-rate checks run under overrides. Also confirm that npx oxlint src is clean and that npm run build passes."
+    },
+    {
+      "key": "cost:compute:container-k8s-vm-same-instance-price",
+      "fixerStatus": "fixed",
+      "fixerChange": "onPaas became computePrices(containerPrice) in components.ts. PaaS is 1.6x. Cloud Kubernetes and VM nodes are containerPrice/1.2 (CONTAINER_PREMIUM, from Fargate vs m6i list prices). On-prem keeps its providerPriceFactor level. Added a 'k8s-control-plane' component ($73 a month, $0.10/h, flat billed",
+      "checkerSaysRemaining": "To let Kubernetes or VMs win on total cost at a realistic scale, fix any one of these:\n- The people cost per cluster node ($41.67, from clusterNodesPerOpsFte 300) is larger than the per-node saving from CONTAINER_PREMIUM 1.2 (at most $15). Raise clusterNodesPerOpsFte to the thousands that platform teams typically run, or charge staffing per cluster instead of per node.\n- Exclude provider-managed compute-tier lines such as ml-inference (SageMaker, Azure ML, Vertex endpoints) from clusterNodes in staffEstate (architecture.ts:654-659), and decide whether workers on the cluster count.\n- Optionally add the spot share for workers on nodes.\nThen add a test where a compute-heavy design at scale ranks Kubernetes or VMs cheaper than managed containers on run plus people, as well as on run cost alone."
+    },
+    {
+      "key": "docs:guidance:build-order-ignores-task-kind",
+      "fixerStatus": "fixed",
+      "fixerChange": "guidance() in generate.ts branches on the task. The core app path appears only on a request path. A data platform without one starts with one source -> ingestion -> lake or warehouse with catalog -> first BI report. An app with analytics gets that as a later step. A design with llm-api or llm-servin",
+      "checkerSaysRemaining": "In guidance() (generate.ts:445-449), key the data-platform first step on e.facts['profile.dataPlatform'] === true, or on has('ingestion') || has('cdc-pipeline'), not on has('ingestion') alone. Then a data platform fed from a single kept existing source (extend_existing, data.source_count=1) gets the one-source -> lake/warehouse -> catalog -> BI step instead of an empty build order. Add a docs.test.ts case for that configuration."
+    },
+    {
+      "key": "engine:hybrid-link:analytics-link-priced-by-migration-link",
+      "fixerStatus": "fixed",
+      "fixerChange": "The link is split. A new component, migration-link (src/knowledge/components.ts), exists when hybridCloudPlatform holds and the migration uses a network link. It is named and priced by migration.link through the shared linkPricing rules and offers in services.ts, and it is transition-phase while the",
+      "checkerSaysRemaining": "Name the hybrid-link independently of migration.link while hybridCloudPlatform holds and data.analytics_cloud is still pending. One fix is to add a generic on-prem row, ...offers('hybrid-link', hybridCloudPlatform, [null, null, null, 'Dedicated 1 Gbps interconnect'], { sources: [S.generalMigration], sizing: flatLine('A dedicated 1 Gbps port and circuit for the loads to the analytics cloud.') }), in src/knowledge/services.ts right after the hybridRows('hybrid-link', ...) line at 241. That puts it ahead of the migration-keyed offers('hybrid-link', link, ...) at 248. Guarding only the offer at 248 with f.not(hybridCloudPlatform) is not enough: hybrid-link's techFrom on migration.link (components.ts:839) would then name the link 'Site-to-site VPN' instead. Add a test case that deletes data.analytics_cloud and expects hybrid-link not to carry the VPN or 10 Gbps name or note. Not checked: the UI was not rendered in a browser; the check ran the same evaluate() path the store uses. The full vitest suite, oxlint and the build were not run; only migration.test.ts and tsc were. One more case I noticed, outside the finding: with migration-link excluded and migration.link=dedicated_10g, the bulk loader is still sized at 4 nodes for a 10 Gbps copy that now crosses the 1 Gbps analytics link."
+    },
+    {
+      "key": "explore:compare:answered-follow-ups-pin-alternatives-infeasible",
+      "fixerStatus": "fixed",
+      "fixerChange": "New resolveOption() in src/engine/explore.ts prices each compared option. Any answered question that becomes newly infeasible under that option is set back to an assumption (its recommendation), and this repeats until no such answer is left. The reset ids are returned as `resets`. compareOver and co",
+      "checkerSaysRemaining": "Make the question card's option click match what its chip prices. For single-choice options with resets, apply optionChange(q.id, o.id, resets) as one undo step instead of the plain answer. OptionCost.resets in src/ui/costing.ts holds titles, so the ids also need to be exposed. The alternative is to show an Infeasible chip on the card when the plain answer leaves a knock-on error. Main places: src/ui/QuestionCard.tsx (option-main onClick, CostChips), src/ui/Sidebar.tsx (QuestionCard onAnswer), src/ui/costing.ts (optionCosts).\n\nLower-priority observation outside the fix's stated scope: feasibility still counts only knock-on errors from infeasible-* rules. In the web-crawler scenario with every assumption made explicit, the on-prem column resets four answers, is marked feasible and Cheapest ($1.57M against GCP's $2.22M), yet carries a new availability-gap error from the kept reliability.dr=backups answer. The column's 'Errors / warnings' row does show it.\n\nNot checked: npm run build, WebKit, and whether the 'Compare alternatives' table (AlternativesTable) should also use resets. That table prices the plain-answer design, which is the same design its Apply produces."
+    },
+    {
+      "key": "ui:why-asked:off-because-says-not-decided-for-answered",
+      "fixerStatus": "fixed",
+      "fixerChange": "explainCondition() takes options { positiveOnly, answers }. When an 'exists' clause fails because the owning question is inactive, the line now reads '<question> no longer applies' if it was answered and 'does not apply' if not. With positiveOnly, negated includes/eq/in/exists/has and holding 'ne' c",
+      "checkerSaysRemaining": "Apply the same inactive-question check at conditions.ts:155. When set[0].q has an askWhen that fails, return '<title> no longer applies' if options.answers has an answer for it, and '<title> does not apply' if not. Otherwise keep 'not decided yet'. Add a test: url-shortener after autoComplete with project.kind switched to data_platform. The negated perf.cache askWhen, explained with answers, must not contain 'Read:write ratio is not decided yet' or 'Latency target is not decided yet'. Not checked: the 'Asked because' wording beyond the scenario-driven designs."
+    },
+    {
+      "key": "tests:influence:numeric-check-passes-on-pass-through-workload",
+      "fixerStatus": "fixed",
+      "fixerChange": "src/engine/influence.test.ts numeric check: the outcome no longer includes the workload, which copies inputs verbatim. It compares cost, availability, findings, components (id, tech, replicas, units) and the active questions instead. It also iterates over every scenario where the question is active ",
+      "checkerSaysRemaining": "Make the numeric check ignore units that only mirror an input. Two ways to do it: leave $0 or billed-outside components such as 'sources' out of the components signature, or compare only components whose cost or tech changes. Then require a cost, finding, tech/replica or active-question change. With that in place, data.source_count would have to pass on onprem-iceberg-lakehouse, and the lack of effect on the Fabric scenarios would show up. I did not re-check the other numeric questions for similar mirror-only units. My scratch scripts are in /tmp/infl-check (check.ts and sc.ts)."
+    }
+  ],
+  "skippedByFixers": [
+    {
+      "key": "cost:provider-compare:gcp-premium-is-looker-flat-fee",
+      "reason": "Already resolved by an earlier fixer: a looker_studio option is priced per user at $9, and Looker scoring is gated on cap.analyticsUsers. On GCP, compareOver now picks Looker Studio ($225): databricks-ml-aws AWS $17,546 vs GCP $17,556."
+    },
+    {
+      "key": "validations:budget:transition-over-budget-fires-without-migration",
+      "reason": "Already resolved: transition-over-budget is guarded by profile.replace === true (validations.ts). internal-tool with infra.budget=100 now gives only over-budget and queue-idempotent."
+    },
+    {
+      "key": "kb:bi-tool:looker-flips-provider-comparison",
+      "reason": "Already resolved in the current code. Only the pin test was added."
+    },
+    {
+      "key": "engine:migration:archived-history-not-in-design",
+      "reason": "Already resolved in the current code and pinned by an existing test."
+    },
+    {
+      "key": "engine:extend-existing:scheduled-feed-marked-transition",
+      "reason": "Already resolved in the current code."
+    },
+    {
+      "key": "migration:cdc:sized-from-new-system-writes",
+      "reason": "Already resolved. src/engine/migration.ts:118 sizes mig.cdcChangesQps from source.change_rows_day (times the peak factor) when profile.requestPath is false or the old system is not replaced. cap.peakWriteQps is used only when the new system replaces the old one."
+    },
+    {
+      "key": "engine:overrides:unit-price-carries-across-products",
+      "reason": "Already fixed by an earlier fixer: deriveArchitecture applies prices through unitPriceKey (component, provider, offer, tier), scopeUnitPrices migrates old saved keys, and the Prices tab lists prices for other offers as kept but not applied."
+    },
+    {
+      "key": "migration:sync:mixed-saas-crm-warning-drops-db-path",
+      "reason": "Already resolved in the current code."
+    },
+    {
+      "key": "edges:ai-retrieval:extended-records-never-reach-vectors",
+      "reason": "Already resolved in the current code."
+    },
+    {
+      "key": "migration:origin:replace-and-modernize-identical-to-db-migration",
+      "reason": "An earlier fixer already resolved it in the current code."
+    }
+  ]
+}

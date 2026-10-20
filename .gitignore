@@ -1,0 +1,14 @@
+# Source repositories the knowledge base was extracted from
+system-design-101-main/
+system-design-main/
+system-design-primer-master/
+
+# Tool state and OS files
+.omc/
+.DS_Store
+
+# Extracts and exports derived from CC BY-NC-ND 4.0 sources (system-design-101, system-design-main)
+docs/knowledge/system-design-101.md
+docs/knowledge/system-design-main.md
+docs/knowledge/system-design-101-takeaways.json
+docs/knowledge/kb.json

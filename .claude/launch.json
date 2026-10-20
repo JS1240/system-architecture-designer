@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "architect", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "architect", "run", "dev", "--", "--port", "5174", "--strictPort"], "port": 5174 }
+  ]
+}
